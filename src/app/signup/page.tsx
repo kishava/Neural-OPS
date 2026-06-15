@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Radio, ShieldCheck, UserPlus, LogIn } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function SignUpPage() {
@@ -52,22 +51,19 @@ function SignUpClient() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
-          data: { full_name: name.trim() },
-        },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          full_name: name.trim(),
+        }),
       });
 
-      if (signUpError) {
-        setError(signUpError.message || "Sign up failed.");
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Sign up failed.");
         return;
       }
 

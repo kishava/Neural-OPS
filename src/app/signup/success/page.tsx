@@ -22,17 +22,16 @@ export default function SignUpSuccessPage() {
           </div>
 
           <h1 className="font-display mb-2 text-xl font-semibold text-white">
-            Check Your Email
+            Account Created
           </h1>
           <p className="mb-6 font-mono text-[12px] leading-relaxed text-slate-400">
-            We&apos;ve sent a confirmation link to your email address. Click the link to activate
-            your account and access the operations platform.
+            Your account is ready to use! Sign in to access the operations platform. You can verify your email anytime in profile settings.
           </p>
 
           <div className="mb-6 flex items-center justify-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-4 py-3">
             <Mail className="h-4 w-4 shrink-0 text-slate-500" />
             <span className="font-mono text-[11px] text-slate-400">
-              Confirmation email sent
+              Email verification is optional
             </span>
           </div>
 

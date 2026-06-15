@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { KeyRound, LogIn, Mail, Radio, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function LoginPage() {
@@ -48,12 +47,14 @@ function LoginClient() {
     setError(null);
     setLoading(true);
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
-
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (authError) {
-        setError(authError.message || "Invalid email or password.");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Invalid email or password.");
         return;
       }
       router.replace("/command-center");

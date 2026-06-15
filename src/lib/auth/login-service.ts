@@ -95,32 +95,53 @@ export async function authenticateWithEmailPassword(email: string, password: str
   }
 
   const organizationId = dbUser?.organizationId ?? metadata.organizationId;
-  if (!organizationId) {
-    throw new Error("Invalid email or password.");
+
+  // If no org found at all, auto-create one so fresh signup users can always log in
+  let resolvedOrganization =
+    dbUser?.organization ?? (organizationId ? await lookupOrganization(organizationId) : null);
+
+  if (!resolvedOrganization) {
+    const name = dbUser?.name ?? metadata.name ?? normalizedEmail.split("@")[0];
+    const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const slug = `${slugBase}-${Date.now()}`;
+    try {
+      resolvedOrganization = await prisma.organization.create({
+        data: { name: `${name}'s Organization`, slug },
+      });
+      if (dbUser) {
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: { organizationId: resolvedOrganization.id },
+        });
+      } else {
+        dbUser = await prisma.user.create({
+          data: {
+            name,
+            email: normalizedEmail,
+            role: "admin",
+            authId: session.user.id,
+            organizationId: resolvedOrganization.id,
+          },
+          include: { organization: true },
+        });
+        resolvedOrganization = dbUser.organization!;
+      }
+    } catch {
+      throw new Error("Could not provision account. Please try again.");
+    }
   }
 
-  const role = dbUser?.role ?? (isAllowedRole(metadata.role ?? "") ? metadata.role : "analyst");
+  const role = dbUser?.role ?? (isAllowedRole(metadata.role ?? "") ? (metadata.role as UserRole) : "analyst" as UserRole);
   const name = dbUser?.name ?? metadata.name ?? "User";
   const userId = dbUser?.id ?? metadata.prismaUserId ?? session.user.id;
 
   if (dbUser && !dbUser.authId) {
     try {
-      await prisma.user.update({
-        where: { id: dbUser.id },
-        data: { authId: session.user.id },
-      });
+      await prisma.user.update({ where: { id: dbUser.id }, data: { authId: session.user.id } });
     } catch {
       // Ignore when Prisma is unavailable in edge runtime.
     }
   }
-
-  const organization =
-    dbUser?.organization ??
-    (await lookupOrganization(organizationId)) ?? {
-      id: organizationId,
-      name: "Organization",
-      slug: "organization",
-    };
 
   const authSession: AuthSessionCookie = {
     accessToken: session.access_token,
@@ -128,14 +149,14 @@ export async function authenticateWithEmailPassword(email: string, password: str
     userId,
     email: normalizedEmail,
     name,
-    role: role as UserRole,
-    organizationId: organization.id,
+    role,
+    organizationId: resolvedOrganization.id,
   };
 
   await writeAuthSession(authSession);
   return {
     session: authSession,
-    organization: { id: organization.id, name: organization.name, slug: organization.slug },
+    organization: { id: resolvedOrganization.id, name: resolvedOrganization.name, slug: resolvedOrganization.slug },
   };
 }
 

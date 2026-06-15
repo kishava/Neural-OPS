@@ -67,7 +67,8 @@ function SignUpClient() {
         return;
       }
 
-      router.push("/signup/success");
+      // Session cookie is already set server-side — go straight in
+      router.replace(data.redirect ?? "/command-center");
     } finally {
       setLoading(false);
     }

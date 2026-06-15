@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { KeyRound, LogIn, Mail, Radio, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
@@ -39,6 +39,8 @@ function AuthShell({ children }: { children: React.ReactNode }) {
 
 function LoginClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get("registered") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,12 @@ function LoginClient() {
 
       const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (authError) {
-        setError(authError.message || "Invalid email or password.");
+        const msg = authError.message?.toLowerCase() ?? "";
+        if (msg.includes("invalid login") || msg.includes("credentials")) {
+          setError("Incorrect email or password.");
+        } else {
+          setError(authError.message || "Sign in failed. Please try again.");
+        }
         return;
       }
       router.replace("/command-center");
@@ -73,6 +80,12 @@ function LoginClient() {
           Access your operations console
         </p>
       </div>
+
+      {justRegistered && (
+        <p className="mb-4 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 font-mono text-[11px] text-cyan-300">
+          Account created. Sign in to continue.
+        </p>
+      )}
 
       <div className="space-y-4">
         <label className="block">

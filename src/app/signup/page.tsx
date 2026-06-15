@@ -55,31 +55,40 @@ function SignUpClient() {
       const supabase = createSupabaseBrowser();
       if (!supabase) { setError("Auth service unavailable."); return; }
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
-          data: { full_name: name.trim() },
-        },
+      // Create an already-confirmed account server-side (no email sent, no
+      // rate limits, works with any provider).
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          fullName: name.trim(),
+        }),
       });
 
-      if (signUpError) {
-        setError(signUpError.message || "Sign up failed.");
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+
+      if (!res.ok) {
+        setError(payload.error || "Sign up failed. Please try again.");
         return;
       }
 
-      // If email confirmation is disabled on the Supabase project the user
-      // gets a session immediately — redirect straight to the app.
-      // If confirmation IS required we fall through to the success screen.
-      if (signUpData.session) {
-        router.replace("/command-center");
+      // Account exists and is confirmed — sign in right away for a seamless flow.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (signInError) {
+        // Account was created but auto sign-in failed — send them to login.
+        router.replace("/login?registered=1");
         return;
       }
 
-      router.push("/signup/success");
+      router.replace("/command-center");
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -24,7 +24,7 @@
   }
 
   body {
-    @apply h-full overflow-hidden bg-neural-bg font-mono text-slate-300 antialiased;
+    @apply h-full md:overflow-hidden overflow-auto bg-neural-bg font-mono text-slate-300 antialiased;
     /* Subtle grid lines — the NeuralNetworkCanvas provides the animated layer */
     background-image:
       linear-gradient(rgba(34, 211, 238, 0.018) 1px, transparent 1px),

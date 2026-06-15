@@ -188,9 +188,9 @@ export function CommandCenterView() {
 
   return (
     <AppShell title="Command Center" subtitle="Enterprise Digital Twin · Live incident telemetry" fullWidth>
-      <div className="grid h-[calc(100vh-5.5rem)] grid-cols-12 grid-rows-[1fr_68px] gap-1.5 p-1.5">
-        <div className="col-span-2 min-h-0 overflow-hidden">
-          <CyberPanel title="Incident Queue" compact glow="red" className="flex h-full flex-col">
+      <div className="md:grid md:h-[calc(100vh-5.5rem)] md:grid-cols-12 md:grid-rows-[1fr_68px] md:gap-1.5 md:p-1.5 grid grid-cols-1 grid-rows-auto gap-1.5 p-1.5 h-auto">
+        <div className="md:col-span-2 min-h-0 md:overflow-hidden overflow-visible">
+          <CyberPanel title="Incident Queue" compact glow="red" className="flex md:h-full flex-col md:max-h-none max-h-[300px]">
             <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
               {incidents.map((incident) => {
                 const isActive = incident.id === selectedIncidentId;
@@ -220,7 +220,7 @@ export function CommandCenterView() {
           </CyberPanel>
         </div>
 
-        <div className="col-span-8 relative min-h-0 overflow-hidden rounded-lg border border-cyan-500/25 glass-premium">
+        <div className="md:col-span-8 md:relative relative min-h-0 md:overflow-hidden overflow-visible md:rounded-lg rounded-lg border border-cyan-500/25 glass-premium md:h-[calc(100vh-8rem)] h-[400px]">
           <CommandCenterCanvas className="absolute inset-0 h-full w-full">
             <EnterpriseNetworkTwinScene onNodeSelect={setSelectedNodeId} />
           </CommandCenterCanvas>
@@ -258,7 +258,7 @@ export function CommandCenterView() {
           </div>
         </div>
 
-        <div className="col-span-2 flex min-h-0 flex-col gap-1.5 overflow-hidden">
+        <div className="md:col-span-2 flex min-h-0 flex-col gap-1.5 md:overflow-hidden overflow-visible md:max-h-none max-h-fit">
           <CyberPanel title="Active Agents" compact glow="cyan" className="shrink-0">
             <div className="mb-1 font-mono text-[10px] font-medium text-cyan-400">{activeAgents.length} online</div>
             <div className="flex flex-wrap gap-1">
@@ -271,7 +271,7 @@ export function CommandCenterView() {
             </div>
           </CyberPanel>
 
-          <CyberPanel title="Band Stream" compact glow="violet" className="min-h-0 flex-1 overflow-hidden">
+          <CyberPanel title="Band Stream" compact glow="violet" className="md:min-h-0 md:flex-1 md:overflow-hidden overflow-visible md:max-h-[calc(100vh-22rem)] max-h-[300px]">
             <div className="max-h-[calc(100vh-22rem)] space-y-1 overflow-y-auto">
               {recentMessages.map((msg) => {
                 const badge = messageTypeBadge(msg.type);
@@ -309,7 +309,7 @@ export function CommandCenterView() {
           </CyberPanel>
         </div>
 
-        <div className="col-span-12 min-h-0">
+        <div className="md:col-span-12 min-h-0 md:overflow-visible overflow-visible">
           <CyberPanel title="Investigation Timeline" compact noPadding glow="cyan">
             <div className="relative px-2 py-1.5">
               <div className="absolute left-4 right-4 top-[22px] h-px bg-cyan-500/15" />

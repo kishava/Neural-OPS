@@ -67,7 +67,10 @@ export async function POST(request: Request) {
   try {
     // Create Organization and User records so middleware can find the user's org
     const org = await prisma.organization.create({
-      data: { name: fullName || email.split("@")[0], ownerId: data.user.id },
+      data: {
+        name: fullName || email.split("@")[0],
+        slug: `org-${data.user.id.slice(0, 8)}`,
+      },
     });
 
     await prisma.user.create({

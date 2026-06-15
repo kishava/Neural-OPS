@@ -77,7 +77,7 @@ function LoginClient() {
       <div className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-            Work Email
+            Email
           </span>
           <div className="flex items-center gap-2.5 rounded-lg border border-slate-700/80 bg-slate-900/70 px-3 transition-colors focus-within:border-cyan-500/50">
             <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
@@ -86,7 +86,7 @@ function LoginClient() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              placeholder="you@company.com"
+              placeholder="you@example.com"
               autoComplete="email"
               className="w-full bg-transparent py-3 font-mono text-sm text-white outline-none placeholder:text-slate-600"
             />

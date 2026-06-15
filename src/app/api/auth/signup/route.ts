@@ -77,8 +77,9 @@ export async function POST(request: Request) {
       data: {
         id: data.user.id,
         email,
-        fullName: fullName || "",
+        name: fullName || email.split("@")[0],
         organizationId: org.id,
+        authId: data.user.id,
       },
     });
 

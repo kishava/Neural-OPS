@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Radio, ShieldCheck, UserPlus, LogIn } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function SignUpPage() {
@@ -52,26 +51,44 @@ function SignUpClient() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
-          data: { full_name: name.trim() },
-        },
+      // Create an already-confirmed account server-side (no email sent, no
+      // rate limits, works with any provider).
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          fullName: name.trim(),
+        }),
       });
 
-      if (signUpError) {
-        setError(signUpError.message || "Sign up failed.");
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+
+      if (!res.ok) {
+        setError(payload.error || "Sign up failed. Please try again.");
         return;
       }
 
-      router.push("/signup/success");
+      // Account is created and org/user records exist — log in to get session cookies
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      if (!loginRes.ok) {
+        // Account was created but login failed — send to login page to try again
+        router.replace("/login?registered=1");
+        return;
+      }
+
+      router.replace("/command-center");
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -109,7 +126,7 @@ function SignUpClient() {
 
         <label className="block">
           <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-            Work Email
+            Email
           </span>
           <div className="flex items-center gap-2.5 rounded-lg border border-slate-700/80 bg-slate-900/70 px-3 transition-colors focus-within:border-cyan-500/50">
             <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
@@ -117,7 +134,7 @@ function SignUpClient() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              placeholder="you@example.com"
               autoComplete="email"
               className="w-full bg-transparent py-3 font-mono text-sm text-white outline-none placeholder:text-slate-600"
             />

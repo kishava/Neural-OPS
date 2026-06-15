@@ -1,11 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { KeyRound, LogIn, Mail, Radio, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function LoginPage() {
@@ -39,6 +38,8 @@ function AuthShell({ children }: { children: React.ReactNode }) {
 
 function LoginClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get("registered") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,14 +49,23 @@ function LoginClient() {
     setError(null);
     setLoading(true);
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
+      // Call the login API which sets session cookies and Prisma lookups
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
 
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (authError) {
-        setError(authError.message || "Invalid email or password.");
+      const payload = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setError(payload.error || "Sign in failed. Please try again.");
         return;
       }
+
       router.replace("/command-center");
     } finally {
       setLoading(false);
@@ -74,10 +84,16 @@ function LoginClient() {
         </p>
       </div>
 
+      {justRegistered && (
+        <p className="mb-4 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 font-mono text-[11px] text-cyan-300">
+          Account created. Sign in to continue.
+        </p>
+      )}
+
       <div className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-            Work Email
+            Email
           </span>
           <div className="flex items-center gap-2.5 rounded-lg border border-slate-700/80 bg-slate-900/70 px-3 transition-colors focus-within:border-cyan-500/50">
             <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
@@ -86,7 +102,7 @@ function LoginClient() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              placeholder="you@company.com"
+              placeholder="you@example.com"
               autoComplete="email"
               className="w-full bg-transparent py-3 font-mono text-sm text-white outline-none placeholder:text-slate-600"
             />

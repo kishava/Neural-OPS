@@ -46,7 +46,7 @@ export const GET = withAuth("incidents:read", async (request, { user }) => {
   });
 
   return json({
-    documents: documents.map((doc) => ({
+    documents: documents.map((doc: (typeof documents)[number]) => ({
       id: doc.id,
       name: doc.name,
       mimeType: doc.mimeType,

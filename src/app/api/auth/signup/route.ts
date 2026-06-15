@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceServer } from "@/lib/supabase/server";
+import { prisma } from "@/lib/db";
+import { setSessionCookies } from "@/lib/auth/session-cookie";
 
 export const runtime = "nodejs";
 
@@ -57,5 +59,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || "Sign up failed." }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, userId: data.user?.id });
+  if (!data.user?.id) {
+    return NextResponse.json({ error: "User creation failed." }, { status: 500 });
+  }
+
+  try {
+    // Create Organization and User records so middleware can find the user's org
+    const org = await prisma.organization.create({
+      data: { name: fullName || email.split("@")[0], ownerId: data.user.id },
+    });
+
+    await prisma.user.create({
+      data: {
+        id: data.user.id,
+        email,
+        fullName: fullName || "",
+        organizationId: org.id,
+      },
+    });
+
+    // Set session cookies that middleware requires for protected routes
+    const response = NextResponse.json({ ok: true, userId: data.user.id });
+    setSessionCookies(response, {
+      sessionId: data.user.id,
+      organizationId: org.id,
+    });
+
+    return response;
+  } catch (dbError) {
+    const msg = dbError instanceof Error ? dbError.message : "Database error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Radio, ShieldCheck, UserPlus, LogIn } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function SignUpPage() {
@@ -52,9 +51,6 @@ function SignUpClient() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
-
       // Create an already-confirmed account server-side (no email sent, no
       // rate limits, works with any provider).
       const res = await fetch("/api/auth/signup", {
@@ -74,14 +70,18 @@ function SignUpClient() {
         return;
       }
 
-      // Account exists and is confirmed — sign in right away for a seamless flow.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      // Account is created and org/user records exist — log in to get session cookies
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
 
-      if (signInError) {
-        // Account was created but auto sign-in failed — send them to login.
+      if (!loginRes.ok) {
+        // Account was created but login failed — send to login page to try again
         router.replace("/login?registered=1");
         return;
       }

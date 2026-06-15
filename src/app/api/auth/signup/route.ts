@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceServer } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
-import { setSessionCookies } from "@/lib/auth/session-cookie";
+import { cookies } from "next/headers";
+import { ORGANIZATION_COOKIE_NAME } from "@/lib/auth/constants";
 
 export const runtime = "nodejs";
 
@@ -78,14 +79,18 @@ export async function POST(request: Request) {
       },
     });
 
-    // Set session cookies that middleware requires for protected routes
-    const response = NextResponse.json({ ok: true, userId: data.user.id });
-    setSessionCookies(response, {
-      sessionId: data.user.id,
-      organizationId: org.id,
+    // Set org cookie so middleware can find the user's organization
+    const cookieStore = await cookies();
+    cookieStore.set(ORGANIZATION_COOKIE_NAME, org.id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
 
-    return response;
+    // Return success; client will call /api/auth/login to set session cookie
+    return NextResponse.json({ ok: true, userId: data.user.id });
   } catch (dbError) {
     const msg = dbError instanceof Error ? dbError.message : "Database error";
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { KeyRound, LogIn, Mail, Radio, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
 
 export default function LoginPage() {
@@ -50,19 +49,23 @@ function LoginClient() {
     setError(null);
     setLoading(true);
     try {
-      const supabase = createSupabaseBrowser();
-      if (!supabase) { setError("Auth service unavailable."); return; }
+      // Call the login API which sets session cookies and Prisma lookups
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
 
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (authError) {
-        const msg = authError.message?.toLowerCase() ?? "";
-        if (msg.includes("invalid login") || msg.includes("credentials")) {
-          setError("Incorrect email or password.");
-        } else {
-          setError(authError.message || "Sign in failed. Please try again.");
-        }
+      const payload = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setError(payload.error || "Sign in failed. Please try again.");
         return;
       }
+
       router.replace("/command-center");
     } finally {
       setLoading(false);
